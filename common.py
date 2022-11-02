@@ -12,7 +12,9 @@ def EnergyPlusDeliverFilter():
 
     import cx_Oracle as cx
     import pandas as pd
-    db=cx.connect('tableua_q','tableua_2022','192.168.26.182:1521/orcl')
+    from dotenv import dotenv_values
+    config = dotenv_values('.env')#get config of mariadb engine
+    db=cx.connect(USERNAME_ORACLE,PASSWORD_ORACLE,PASSWORD_ORACLE+'/orcl')
     cursor=db.cursor()
     cursor.execute('select 出货日期 as 日期,厂名 from V_DELIVER group by 出货日期,厂别名称')
     deliver_filter=pd.DataFrame(cursor.fetchall(),columns=['日期','厂名'])
@@ -20,7 +22,7 @@ def EnergyPlusDeliverFilter():
     db.close()
 
     import pymssql
-    db=pymssql.connect('192.168.89.43','biel','BIEL03010666','db_product_energy_tableau')
+    db=pymssql.connect(IP_MSSQL,USERNAME_MSSQL,PASSWORD_MSSQL,DATABASE_MSSQL)
     cursor=db.cursor()
     cursor.execute('select 日期,厂名 from energy_Tableau_IE group by 日期,厂名 ')
     energy_filter=pd.DataFrame(cursor.fetchall(),columns=['日期','厂名'])
@@ -28,12 +30,12 @@ def EnergyPlusDeliverFilter():
 
     from sqlalchemy import create_engine
     energy_plus_deliver_filter=pd.concat(deliver_filter,energy_filter).drop_duplicates()
-    conn = create_engine('mssql+pymssql://biel:BIEL03010666@192.168.89.43/db_product_energy_tableau')
+    conn = create_engine('mssql+pymssql://'+USERNAME_MSSQL+':'+PASSWORD_MSSQL+'@'+IP_MSSQL+'/'+DATABASE_MSSQL)
     data_energy.to_sql(name='energy_plus_deliver_filter', con=conn, if_exists='replace', index=False,dtype=mapping_df_types(df))
     conn.dispose()
 
     import pymssql
-    db = pymssql.connect('192.168.89.43','biel','BIEL03010666','db_product_energy_tableau')  # 服务器名,账户,密码,数据库名
+    db = pymssql.connect(IP_MSSQL,USERNAME_MSSQL,PASSWORD_MSSQL,DATABASE_MSSQL)  # 服务器名,账户,密码,数据库名
     cursor = db.cursor()  # 创建一个游标对象,python里的sql语句都要通过cursor来执行
     cursor.execute(''' alter table energy_plus_deliver_filter alter column 日期 datetime''')
     db.commit()
